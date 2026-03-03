@@ -402,6 +402,15 @@
             margin-left: 0.3rem;
             display: inline-block;
         }
+        .official-badge {
+            background: linear-gradient(145deg, #2ecc71, #27ae60);
+            color: white;
+            padding: 0.2rem 0.6rem;
+            border-radius: 1rem;
+            font-size: 0.7rem;
+            margin-left: 0.3rem;
+            display: inline-block;
+        }
         @keyframes pulse {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
@@ -560,6 +569,14 @@
         }
         .community-info p {
             color: #b0d0ff;
+        }
+        .community-official-badge {
+            background: #2ecc71;
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 1rem;
+            font-size: 0.7rem;
+            margin-left: 0.5rem;
         }
         .community-actions {
             display: flex;
@@ -834,6 +851,14 @@
             text-align: center;
             font-size: 1.2rem;
         }
+        /* Стили для API-ключа */
+        .api-key {
+            background: #0a1a2f;
+            padding: 0.5rem;
+            border-radius: 1rem;
+            font-family: monospace;
+            user-select: all;
+        }
     </style>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-compat.js"></script>
 </head>
@@ -903,6 +928,9 @@
                             <button class="btn small" id="adminUsersBtn" onclick="showAdminPanel()">Управление пользователями</button>
                             <button class="btn small" id="adminReportsBtn" onclick="showReportsPanel()">Жалобы</button>
                             <button class="btn small" id="adminTicketsBtn" onclick="showTicketsPanel()">Тикеты</button>
+                            <button class="btn small" id="adminCommunitiesBtn" onclick="showAdminCommunities()">Сообщества</button>
+                            <button class="btn small" id="adminBotsBtn" onclick="showAdminBots()">Боты</button>
+                            <button class="btn small" id="adminCustomGiftsBtn" onclick="showAdminCustomGifts()">Создать подарок</button>
                         </div>
                         <div class="footer">© 2026 FLXChat. Все права защищены.</div>
                     </div>
@@ -993,27 +1021,82 @@
                 </div>
             </div>
 
-            <!-- Экран админ-панели -->
+            <!-- Экран админ-панели (расширенный) -->
             <div id="adminScreen" class="screen">
-                <div style="display:flex; gap:1rem; margin-bottom:1rem;">
+                <div style="display:flex; gap:1rem; margin-bottom:1rem; flex-wrap:wrap;">
                     <button class="btn" id="adminTabUsers" onclick="switchAdminTab('users')">Пользователи</button>
                     <button class="btn" id="adminTabReports" onclick="switchAdminTab('reports')">Жалобы</button>
                     <button class="btn" id="adminTabTickets" onclick="switchAdminTab('tickets')">Тикеты</button>
+                    <button class="btn" id="adminTabCommunities" onclick="switchAdminTab('communities')">Сообщества</button>
+                    <button class="btn" id="adminTabBots" onclick="switchAdminTab('bots')">Боты</button>
+                    <button class="btn" id="adminTabCustomGifts" onclick="switchAdminTab('customgifts')">Создать подарок</button>
                 </div>
                 <div id="adminFeeDisplay" class="admin-fee" style="display:none;">Комиссия от обменов: <span id="adminFeeAmount">0</span> FLX</div>
+                
+                <!-- Управление пользователями -->
                 <div id="adminUsersPanel" style="display:block;">
                     <h3 style="color:white;">Управление пользователями</h3>
                     <input type="text" id="adminUserSearch" class="input-field" placeholder="Поиск по нику">
                     <button class="btn" onclick="searchUsersAdmin()">Найти</button>
                     <div id="adminUsersList" class="item-list"></div>
                 </div>
+                
+                <!-- Жалобы -->
                 <div id="adminReportsPanel" style="display:none;">
                     <h3 style="color:white;">Жалобы</h3>
                     <div id="reportsList" class="item-list"></div>
                 </div>
+                
+                <!-- Тикеты -->
                 <div id="adminTicketsPanel" style="display:none;">
                     <h3 style="color:white;">Все тикеты поддержки</h3>
                     <div id="adminTicketsList" class="item-list"></div>
+                </div>
+                
+                <!-- Сообщества (админка) -->
+                <div id="adminCommunitiesPanel" style="display:none;">
+                    <h3 style="color:white;">Управление сообществами</h3>
+                    <input type="text" id="adminCommunitySearch" class="input-field" placeholder="Поиск сообщества">
+                    <button class="btn" onclick="searchAdminCommunities()">Найти</button>
+                    <div id="adminCommunitiesList" class="item-list"></div>
+                </div>
+                
+                <!-- Боты -->
+                <div id="adminBotsPanel" style="display:none;">
+                    <h3 style="color:white;">Управление ботами</h3>
+                    <button class="btn" onclick="generateBotApiKey()">Сгенерировать новый API-ключ</button>
+                    <div id="botApiKeyDisplay" style="margin:1rem 0; display:none;">
+                        <p>API-ключ для бота:</p>
+                        <div class="api-key" id="botApiKey"></div>
+                        <p style="font-size:0.9rem;">Используйте этот ключ в Python-боте для отправки сообщений через наш API.</p>
+                        <pre style="background:#0a1a2f; padding:1rem; border-radius:1rem; overflow-x:auto;">
+import requests
+
+API_KEY = "ваш_ключ"
+BOT_NAME = "MyBot"
+CHAT_ID = "global"  # или ID личного чата
+
+def send_message(text):
+    url = "https://ваш-сайт.com/api/bot/send"
+    headers = {"Authorization": f"Bearer {API_KEY}"}
+    data = {"chat_id": CHAT_ID, "text": text, "bot_name": BOT_NAME}
+    response = requests.post(url, json=data, headers=headers)
+    return response.json()
+                        </pre>
+                    </div>
+                </div>
+                
+                <!-- Создание кастомного подарка -->
+                <div id="adminCustomGiftsPanel" style="display:none;">
+                    <h3 style="color:white;">Создать новый подарок</h3>
+                    <input type="text" id="giftEmoji" class="input-field" placeholder="Эмодзи (например, 🎁)" maxlength="2">
+                    <input type="text" id="giftName" class="input-field" placeholder="Название подарка">
+                    <input type="number" id="giftPrice" class="input-field" placeholder="Цена в FLX" min="1">
+                    <button class="btn" onclick="createCustomGift()">Создать подарок</button>
+                    <div id="customGiftsList" style="margin-top:2rem;">
+                        <h4>Существующие кастомные подарки</h4>
+                        <div id="customGiftsGrid" class="gift-grid"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1029,7 +1112,6 @@
                     <h3>Подарки пользователя</h3>
                     <div id="profileGiftsList" class="gift-grid"></div>
                 </div>
-                <!-- Редактирование профиля (только для своего) -->
                 <div id="profileEditSection" style="display:none; margin-top:1rem;">
                     <h3>Редактировать профиль</h3>
                     <div style="margin:1rem 0;">
@@ -1072,7 +1154,6 @@
             </div>
         </div>
 
-        <!-- Модальное окно для редактирования сообщения -->
         <div id="editMessageModal" class="modal" style="display:none;">
             <div class="modal-content">
                 <span class="close" onclick="closeEditMessageModal()">&times;</span>
@@ -1085,7 +1166,6 @@
             </div>
         </div>
 
-        <!-- Модальное окно для создания сообщества -->
         <div id="createCommunityModal" class="modal" style="display:none;">
             <div class="modal-content">
                 <span class="close" onclick="closeCreateCommunityModal()">&times;</span>
@@ -1095,6 +1175,18 @@
                 <div style="display:flex; gap:1rem; justify-content:center;">
                     <button class="btn" onclick="createCommunity()">Создать</button>
                     <button class="btn" onclick="closeCreateCommunityModal()">Отмена</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="deleteMessageModal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <span class="close" onclick="closeDeleteMessageModal()">&times;</span>
+                <h2>Удаление сообщения</h2>
+                <p>Вы уверены, что хотите удалить это сообщение?</p>
+                <div style="display:flex; gap:1rem; justify-content:center;">
+                    <button class="btn" onclick="confirmDeleteMessage()">Удалить</button>
+                    <button class="btn" onclick="closeDeleteMessageModal()">Отмена</button>
                 </div>
             </div>
         </div>
@@ -1132,9 +1224,10 @@
         let currentTicketId = null;
         let selectedGiftRecipient = null;
         let editingMessageId = null;
+        let messageToDeleteId = null; // для модерации
 
-        // Список доступных подарков
-        const gifts = [
+        // Список доступных подарков (базовые)
+        let gifts = [
             { type: 'deer', name: 'Олень', icon: '🦌', price: 15 },
             { type: 'pickaxe', name: 'Кирка', icon: '⛏️', price: 30 }
         ];
@@ -1227,6 +1320,33 @@
             window.history.pushState({}, '', url);
         }
 
+        // Загрузка кастомных подарков из Firestore
+        async function loadCustomGifts() {
+            const snapshot = await db.collection('customGifts').get();
+            const customGifts = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                customGifts.push({
+                    type: doc.id,
+                    name: data.name,
+                    icon: data.icon,
+                    price: data.price,
+                    creatorId: data.creatorId,
+                    creatorName: data.creatorName
+                });
+            });
+            // Объединяем с базовыми
+            gifts = [
+                { type: 'deer', name: 'Олень', icon: '🦌', price: 15 },
+                { type: 'pickaxe', name: 'Кирка', icon: '⛏️', price: 30 },
+                ...customGifts
+            ];
+            // Обновляем отображение, если открыта соответствующая вкладка
+            if (document.getElementById('giftsSection').classList.contains('active')) {
+                loadMyGifts();
+            }
+        }
+
         // Отслеживание состояния аутентификации
         auth.onAuthStateChanged(async (user) => {
             if (user) {
@@ -1244,7 +1364,7 @@
                         messageCount: 0,
                         bio: '',
                         avatarEmoji: '',
-                        flx: 0,
+                        flx: 0,   // начальный баланс 0
                         gifts: []
                     });
                 } else {
@@ -1266,12 +1386,18 @@
                     document.getElementById('adminUsersBtn').style.display = 'inline-block';
                     document.getElementById('adminTicketsBtn').style.display = 'inline-block';
                     document.getElementById('adminReportsBtn').style.display = 'inline-block';
+                    document.getElementById('adminCommunitiesBtn').style.display = 'inline-block';
+                    document.getElementById('adminBotsBtn').style.display = 'inline-block';
+                    document.getElementById('adminCustomGiftsBtn').style.display = 'inline-block';
                 } else if (currentUserData.role === 'moderator') {
                     adminNavBtn.style.display = 'inline-block';
                     document.getElementById('admin-section').style.display = 'block';
                     document.getElementById('adminUsersBtn').style.display = 'none';
                     document.getElementById('adminTicketsBtn').style.display = 'none';
                     document.getElementById('adminReportsBtn').style.display = 'inline-block';
+                    document.getElementById('adminCommunitiesBtn').style.display = 'none';
+                    document.getElementById('adminBotsBtn').style.display = 'none';
+                    document.getElementById('adminCustomGiftsBtn').style.display = 'none';
                 } else {
                     adminNavBtn.style.display = 'none';
                     document.getElementById('admin-section').style.display = 'none';
@@ -1287,6 +1413,7 @@
                 }
                 loadFriends();
                 switchToGlobalChat();
+                loadCustomGifts(); // загружаем кастомные подарки
                 loadMyGifts();
 
                 setInterval(updateLastActive, 120000);
@@ -1349,11 +1476,20 @@
                 content = `<div>${escapeHtml(msg.text)}</div>`;
             }
             let actionsHtml = '';
+            // Свои сообщения можно редактировать/удалять
             if (msg.senderId === currentUser?.uid && msg.type === 'text') {
                 actionsHtml = `
                     <div class="message-actions">
                         <button onclick="editMessage('${msgId}', '${escapeHtml(msg.text)}')">✎</button>
                         <button onclick="deleteMessage('${msgId}')">🗑</button>
+                    </div>
+                `;
+            }
+            // Админ/модератор может удалить любое сообщение
+            if (currentUserData && (currentUserData.role === 'admin' || currentUserData.role === 'moderator') && msg.senderId !== currentUser?.uid) {
+                actionsHtml += `
+                    <div class="message-actions">
+                        <button onclick="showDeleteMessageModal('${msgId}')" style="background:#e74c3c;">🗑</button>
                     </div>
                 `;
             }
@@ -1481,6 +1617,23 @@
             if (confirm('Удалить сообщение?')) {
                 await db.collection('messages').doc(messageId).update({ deleted: true });
             }
+        }
+
+        function showDeleteMessageModal(messageId) {
+            messageToDeleteId = messageId;
+            document.getElementById('deleteMessageModal').style.display = 'flex';
+        }
+
+        async function confirmDeleteMessage() {
+            if (messageToDeleteId) {
+                await db.collection('messages').doc(messageToDeleteId).update({ deleted: true });
+                closeDeleteMessageModal();
+            }
+        }
+
+        function closeDeleteMessageModal() {
+            document.getElementById('deleteMessageModal').style.display = 'none';
+            messageToDeleteId = null;
         }
 
         function closeEditMessageModal() {
@@ -1750,13 +1903,27 @@
                     type: gift.type,
                     name: gift.name,
                     icon: gift.icon,
+                    price: gift.price,
                     from: currentUser.uid,
                     fromName: currentUserData.nickname,
-                    date: new Date() // серверное время мы не можем использовать в объекте, но сохраним как Date для клиента
+                    date: firebase.firestore.FieldValue.serverTimestamp()
                 };
                 transaction.update(recipientRef, {
                     gifts: firebase.firestore.FieldValue.arrayUnion(newGift)
                 });
+
+                // Если подарок кастомный, начисляем 5% комиссии создателю
+                if (gift.creatorId && gift.creatorId !== currentUser.uid) {
+                    const creatorRef = db.collection('users').doc(gift.creatorId);
+                    const creatorDoc = await transaction.get(creatorRef);
+                    if (creatorDoc.exists) {
+                        const creatorData = creatorDoc.data();
+                        const fee = Math.floor(gift.price * 0.05);
+                        transaction.update(creatorRef, {
+                            flx: (creatorData.flx || 0) + fee
+                        });
+                    }
+                }
             });
 
             currentUserData.flx -= gift.price;
@@ -1765,94 +1932,92 @@
         }
 
         async function loadMyGifts() {
-        if (!currentUserData) return;
-        const giftsList = currentUserData.gifts || [];
-        myGiftsList.innerHTML = '';
-        giftsList.forEach((gift, index) => {
-            const card = document.createElement('div');
-            card.className = 'gift-card';
+            if (!currentUserData) return;
+            const giftsList = currentUserData.gifts || [];
+            myGiftsList.innerHTML = '';
+            giftsList.forEach((gift, index) => {
+                const card = document.createElement('div');
+                card.className = 'gift-card';
+                
+                const giftPrice = gift.price || gifts.find(g => g.type === gift.type)?.price || 0;
+                
+                const receivedDate = gift.date ? gift.date.toDate() : new Date();
+                const now = new Date();
+                const diffDays = (now - receivedDate) / (1000 * 60 * 60 * 24);
+                const canExchange = diffDays <= 5;
+                const exchangePrice = Math.floor(giftPrice * 0.95);
+                
+                card.innerHTML = `
+                    <div class="gift-icon">${gift.icon}</div>
+                    <div class="gift-name">${gift.name}</div>
+                    <div class="gift-from">от ${escapeHtml(gift.fromName)}</div>
+                    <div class="gift-price">Цена: ${giftPrice} FLX</div>
+                    ${canExchange 
+                        ? `<div class="gift-exchange" onclick="exchangeGift(${index})">Обменять (${exchangePrice} FLX)</div>` 
+                        : '<div class="gift-expired">Срок обмена истёк</div>'}
+                `;
+                myGiftsList.appendChild(card);
+            });
+        }
+
+        async function exchangeGift(giftIndex) {
+            if (!currentUserData) return;
+            const gift = currentUserData.gifts[giftIndex];
+            if (!gift) return;
             
-            // Определяем цену: если есть gift.price, используем её, иначе ищем в списке подарков по типу
-            const giftPrice = gift.price || gifts.find(g => g.type === gift.type)?.price || 0;
+            const giftPrice = gift.price || gifts.find(g => g.type === gift.type)?.price;
+            if (!giftPrice) {
+                alert('Не удалось определить цену подарка');
+                return;
+            }
             
             const receivedDate = gift.date ? gift.date.toDate() : new Date();
             const now = new Date();
             const diffDays = (now - receivedDate) / (1000 * 60 * 60 * 24);
-            const canExchange = diffDays <= 5;
+            if (diffDays > 5) {
+                alert('Срок обмена истёк (более 5 дней)');
+                return;
+            }
             const exchangePrice = Math.floor(giftPrice * 0.95);
-            
-            card.innerHTML = `
-                <div class="gift-icon">${gift.icon}</div>
-                <div class="gift-name">${gift.name}</div>
-                <div class="gift-from">от ${escapeHtml(gift.fromName)}</div>
-                <div class="gift-price">Цена: ${giftPrice} FLX</div>
-                ${canExchange 
-                    ? `<div class="gift-exchange" onclick="exchangeGift(${index})">Обменять (${exchangePrice} FLX)</div>` 
-                    : '<div class="gift-expired">Срок обмена истёк</div>'}
-            `;
-            myGiftsList.appendChild(card);
-        });
-    }
+            const fee = giftPrice - exchangePrice;
 
-    async function exchangeGift(giftIndex) {
-        if (!currentUserData) return;
-        const gift = currentUserData.gifts[giftIndex];
-        if (!gift) return;
-        
-        // Определяем цену аналогично
-        const giftPrice = gift.price || gifts.find(g => g.type === gift.type)?.price;
-        if (!giftPrice) {
-            alert('Не удалось определить цену подарка');
-            return;
-        }
-        
-        const receivedDate = gift.date ? gift.date.toDate() : new Date();
-        const now = new Date();
-        const diffDays = (now - receivedDate) / (1000 * 60 * 60 * 24);
-        if (diffDays > 5) {
-            alert('Срок обмена истёк (более 5 дней)');
-            return;
-        }
-        const exchangePrice = Math.floor(giftPrice * 0.95);
-        const fee = giftPrice - exchangePrice;
+            const userRef = db.collection('users').doc(currentUser.uid);
+            const adminStatsRef = db.collection('adminStats').doc('stats');
 
-        const userRef = db.collection('users').doc(currentUser.uid);
-        const adminStatsRef = db.collection('adminStats').doc('stats');
+            await db.runTransaction(async (transaction) => {
+                const userDoc = await transaction.get(userRef);
+                const adminDoc = await transaction.get(adminStatsRef);
+                if (!userDoc.exists) throw new Error('Пользователь не найден');
+                const userData = userDoc.data();
+                const gifts = userData.gifts || [];
+                if (giftIndex >= gifts.length) throw new Error('Подарок не найден');
 
-        await db.runTransaction(async (transaction) => {
-            const userDoc = await transaction.get(userRef);
-            const adminDoc = await transaction.get(adminStatsRef);
-            if (!userDoc.exists) throw new Error('Пользователь не найден');
-            const userData = userDoc.data();
-            const gifts = userData.gifts || [];
-            if (giftIndex >= gifts.length) throw new Error('Подарок не найден');
+                const newGifts = [...gifts];
+                newGifts.splice(giftIndex, 1);
 
-            const newGifts = [...gifts];
-            newGifts.splice(giftIndex, 1);
+                transaction.update(userRef, {
+                    gifts: newGifts,
+                    flx: (userData.flx || 0) + exchangePrice
+                });
 
-            transaction.update(userRef, {
-                gifts: newGifts,
-                flx: (userData.flx || 0) + exchangePrice
+                if (adminDoc.exists) {
+                    const currentFee = adminDoc.data().totalExchangeFee || 0;
+                    transaction.update(adminStatsRef, {
+                        totalExchangeFee: currentFee + fee
+                    });
+                } else {
+                    transaction.set(adminStatsRef, {
+                        totalExchangeFee: fee
+                    });
+                }
             });
 
-            if (adminDoc.exists) {
-                const currentFee = adminDoc.data().totalExchangeFee || 0;
-                transaction.update(adminStatsRef, {
-                    totalExchangeFee: currentFee + fee
-                });
-            } else {
-                transaction.set(adminStatsRef, {
-                    totalExchangeFee: fee
-                });
-            }
-        });
+            currentUserData.gifts.splice(giftIndex, 1);
+            currentUserData.flx += exchangePrice;
+            loadMyGifts();
+            alert(`Подарок обменян на ${exchangePrice} FLX (комиссия ${fee} FLX)`);
+        }
 
-        // Обновляем локальные данные
-        currentUserData.gifts.splice(giftIndex, 1);
-        currentUserData.flx += exchangePrice;
-        loadMyGifts();
-        alert(`Подарок обменян на ${exchangePrice} FLX (комиссия ${fee} FLX)`);
-    }
         async function loadProfileGifts(userId) {
             const userDoc = await db.collection('users').doc(userId).get();
             if (!userDoc.exists) return;
@@ -2080,8 +2245,12 @@
             const div = document.createElement('div');
             div.className = 'community-card';
             const isSubscribed = com.subscribers && com.subscribers.includes(currentUser.uid);
+            const officialBadge = com.official ? '<span class="official-badge">✔ Официальное</span>' : '';
             div.innerHTML = `
-                <div class="community-info"><h3>${escapeHtml(com.name)}</h3><p>${escapeHtml(com.description||'')}</p></div>
+                <div class="community-info">
+                    <h3>${escapeHtml(com.name)} ${officialBadge}</h3>
+                    <p>${escapeHtml(com.description||'')}</p>
+                </div>
                 <div class="community-actions">
                     <button class="btn-icon small" onclick="viewCommunity('${id}', '${escapeHtml(com.name)}')">👀</button>
                     <button class="btn-icon small" onclick="toggleSubscribe('${id}')">${isSubscribed ? '🔔' : '➕'}</button>
@@ -2107,7 +2276,8 @@
                 description: desc,
                 ownerId: currentUser.uid,
                 subscribers: [currentUser.uid],
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                official: false
             });
             closeCreateCommunityModal();
             document.getElementById('communityName').value = '';
@@ -2311,6 +2481,9 @@
             document.getElementById('adminUsersPanel').style.display = 'none';
             document.getElementById('adminReportsPanel').style.display = 'none';
             document.getElementById('adminTicketsPanel').style.display = 'none';
+            document.getElementById('adminCommunitiesPanel').style.display = 'none';
+            document.getElementById('adminBotsPanel').style.display = 'none';
+            document.getElementById('adminCustomGiftsPanel').style.display = 'none';
             adminFeeDisplay.style.display = 'none';
             if (tab === 'users') {
                 document.getElementById('adminUsersPanel').style.display = 'block';
@@ -2321,9 +2494,16 @@
             } else if (tab === 'tickets') {
                 document.getElementById('adminTicketsPanel').style.display = 'block';
                 loadTickets();
-                // Показываем комиссию только в тикетах? Можно показывать всегда, но разместим сверху
                 adminFeeDisplay.style.display = 'block';
                 loadAdminFee();
+            } else if (tab === 'communities') {
+                document.getElementById('adminCommunitiesPanel').style.display = 'block';
+                loadAdminCommunities();
+            } else if (tab === 'bots') {
+                document.getElementById('adminBotsPanel').style.display = 'block';
+            } else if (tab === 'customgifts') {
+                document.getElementById('adminCustomGiftsPanel').style.display = 'block';
+                loadCustomGiftsList();
             }
         }
 
@@ -2490,6 +2670,104 @@
             });
         }
 
+        // Админка: сообщества
+        async function loadAdminCommunities() {
+            const term = document.getElementById('adminCommunitySearch')?.value.trim() || '';
+            let q = db.collection('communities').orderBy('createdAt', 'desc');
+            if (term) {
+                q = q.where('name', '>=', term).where('name', '<=', term + '\uf8ff');
+            }
+            const snapshot = await q.get();
+            const list = document.getElementById('adminCommunitiesList');
+            list.innerHTML = '';
+            snapshot.forEach(doc => {
+                const com = doc.data();
+                const div = document.createElement('div');
+                div.style.padding = '0.8rem';
+                div.style.margin = '0.3rem 0';
+                div.style.backgroundColor = '#132b50';
+                div.style.borderRadius = '1.5rem';
+                div.style.border = '1px solid #3d68b0';
+                div.style.color = 'white';
+                div.innerHTML = `
+                    <p><strong>${escapeHtml(com.name)}</strong> (владелец: ${com.ownerId})</p>
+                    <p>${escapeHtml(com.description || '')}</p>
+                    <p>Подписчиков: ${com.subscribers ? com.subscribers.length : 0}</p>
+                    <p>Официальное: ${com.official ? '✔ Да' : '✖ Нет'}</p>
+                    <button class="btn small" onclick="toggleOfficial('${doc.id}', ${com.official})">${com.official ? 'Снять отметку' : 'Сделать официальным'}</button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        async function toggleOfficial(communityId, current) {
+            await db.collection('communities').doc(communityId).update({
+                official: !current
+            });
+            loadAdminCommunities();
+        }
+
+        function searchAdminCommunities() {
+            loadAdminCommunities();
+        }
+
+        // Боты
+        function generateBotApiKey() {
+            const key = 'flx_' + Math.random().toString(36).substr(2, 16) + '_' + Date.now();
+            document.getElementById('botApiKey').textContent = key;
+            document.getElementById('botApiKeyDisplay').style.display = 'block';
+            // Сохраняем ключ в Firestore для проверки (можно создать коллекцию botKeys)
+            db.collection('botKeys').add({
+                key: key,
+                createdBy: currentUser.uid,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+
+        // Кастомные подарки
+        async function createCustomGift() {
+            const emoji = document.getElementById('giftEmoji').value.trim();
+            const name = document.getElementById('giftName').value.trim();
+            const price = parseInt(document.getElementById('giftPrice').value);
+            if (!emoji || !name || !price) {
+                alert('Заполните все поля');
+                return;
+            }
+            const giftType = 'custom_' + Date.now();
+            await db.collection('customGifts').doc(giftType).set({
+                name,
+                icon: emoji,
+                price,
+                creatorId: currentUser.uid,
+                creatorName: currentUserData.nickname,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            alert('Подарок создан!');
+            document.getElementById('giftEmoji').value = '';
+            document.getElementById('giftName').value = '';
+            document.getElementById('giftPrice').value = '';
+            loadCustomGifts(); // обновить глобальный список
+            loadCustomGiftsList(); // обновить список в админке
+        }
+
+        async function loadCustomGiftsList() {
+            const snapshot = await db.collection('customGifts').get();
+            const grid = document.getElementById('customGiftsGrid');
+            grid.innerHTML = '';
+            snapshot.forEach(doc => {
+                const gift = doc.data();
+                const card = document.createElement('div');
+                card.className = 'gift-card';
+                card.innerHTML = `
+                    <div class="gift-icon">${gift.icon}</div>
+                    <div class="gift-name">${gift.name}</div>
+                    <div class="gift-from">создатель: ${escapeHtml(gift.creatorName)}</div>
+                    <div class="gift-price">Цена: ${gift.price} FLX</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
         function showAdminPanel() {
             switchScreen('admin');
             searchUsersAdmin();
@@ -2503,6 +2781,21 @@
         function showTicketsPanel() {
             switchScreen('admin');
             switchAdminTab('tickets');
+        }
+
+        function showAdminCommunities() {
+            switchScreen('admin');
+            switchAdminTab('communities');
+        }
+
+        function showAdminBots() {
+            switchScreen('admin');
+            switchAdminTab('bots');
+        }
+
+        function showAdminCustomGifts() {
+            switchScreen('admin');
+            switchAdminTab('customgifts');
         }
 
         function loadAdminData() {
@@ -2552,7 +2845,6 @@
             await loadProfileGifts(userId);
             document.getElementById('profileGiftsBlock').style.display = 'none';
 
-            // Показываем секцию редактирования только для своего профиля
             const editSection = document.getElementById('profileEditSection');
             if (isOwn) {
                 editSection.style.display = 'block';
