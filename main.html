@@ -1765,83 +1765,94 @@
         }
 
         async function loadMyGifts() {
-            if (!currentUserData) return;
-            const giftsList = currentUserData.gifts || [];
-            myGiftsList.innerHTML = '';
-            giftsList.forEach((gift, index) => {
-                const card = document.createElement('div');
-                card.className = 'gift-card';
-                const receivedDate = gift.date ? new Date(gift.date) : new Date();
-                const now = new Date();
-                const diffDays = (now - receivedDate) / (1000 * 60 * 60 * 24);
-                const canExchange = diffDays <= 5;
-                const exchangePrice = Math.floor(gift.price * 0.95); // 5% комиссия
-                card.innerHTML = `
-                    <div class="gift-icon">${gift.icon}</div>
-                    <div class="gift-name">${gift.name}</div>
-                    <div class="gift-from">от ${escapeHtml(gift.fromName)}</div>
-                    <div class="gift-price">Цена: ${gift.price} FLX</div>
-                    ${canExchange ? `<div class="gift-exchange" onclick="exchangeGift(${index})">Обменять (${exchangePrice} FLX)</div>` : '<div class="gift-expired">Срок обмена истёк</div>'}
-                `;
-                myGiftsList.appendChild(card);
-            });
-        }
-
-        async function exchangeGift(giftIndex) {
-            if (!currentUserData) return;
-            const gift = currentUserData.gifts[giftIndex];
-            if (!gift) return;
-            const receivedDate = gift.date ? new Date(gift.date) : new Date();
+        if (!currentUserData) return;
+        const giftsList = currentUserData.gifts || [];
+        myGiftsList.innerHTML = '';
+        giftsList.forEach((gift, index) => {
+            const card = document.createElement('div');
+            card.className = 'gift-card';
+            
+            // Определяем цену: если есть gift.price, используем её, иначе ищем в списке подарков по типу
+            const giftPrice = gift.price || gifts.find(g => g.type === gift.type)?.price || 0;
+            
+            const receivedDate = gift.date ? gift.date.toDate() : new Date();
             const now = new Date();
             const diffDays = (now - receivedDate) / (1000 * 60 * 60 * 24);
-            if (diffDays > 5) {
-                alert('Срок обмена истёк (более 5 дней)');
-                return;
-            }
-            const exchangePrice = Math.floor(gift.price * 0.95);
-            const fee = gift.price - exchangePrice; // 5%
+            const canExchange = diffDays <= 5;
+            const exchangePrice = Math.floor(giftPrice * 0.95);
+            
+            card.innerHTML = `
+                <div class="gift-icon">${gift.icon}</div>
+                <div class="gift-name">${gift.name}</div>
+                <div class="gift-from">от ${escapeHtml(gift.fromName)}</div>
+                <div class="gift-price">Цена: ${giftPrice} FLX</div>
+                ${canExchange 
+                    ? `<div class="gift-exchange" onclick="exchangeGift(${index})">Обменять (${exchangePrice} FLX)</div>` 
+                    : '<div class="gift-expired">Срок обмена истёк</div>'}
+            `;
+            myGiftsList.appendChild(card);
+        });
+    }
 
-            // Транзакция: убрать подарок, начислить flx пользователю, добавить комиссию в админ-статистику
-            const userRef = db.collection('users').doc(currentUser.uid);
-            const adminStatsRef = db.collection('adminStats').doc('stats'); // единый документ для статистики
+    async function exchangeGift(giftIndex) {
+        if (!currentUserData) return;
+        const gift = currentUserData.gifts[giftIndex];
+        if (!gift) return;
+        
+        // Определяем цену аналогично
+        const giftPrice = gift.price || gifts.find(g => g.type === gift.type)?.price;
+        if (!giftPrice) {
+            alert('Не удалось определить цену подарка');
+            return;
+        }
+        
+        const receivedDate = gift.date ? gift.date.toDate() : new Date();
+        const now = new Date();
+        const diffDays = (now - receivedDate) / (1000 * 60 * 60 * 24);
+        if (diffDays > 5) {
+            alert('Срок обмена истёк (более 5 дней)');
+            return;
+        }
+        const exchangePrice = Math.floor(giftPrice * 0.95);
+        const fee = giftPrice - exchangePrice;
 
-            await db.runTransaction(async (transaction) => {
-                const userDoc = await transaction.get(userRef);
-                const adminDoc = await transaction.get(adminStatsRef);
-                if (!userDoc.exists) throw new Error('Пользователь не найден');
-                const userData = userDoc.data();
-                const gifts = userData.gifts || [];
-                if (giftIndex >= gifts.length) throw new Error('Подарок не найден');
+        const userRef = db.collection('users').doc(currentUser.uid);
+        const adminStatsRef = db.collection('adminStats').doc('stats');
 
-                // Удаляем подарок из массива
-                const newGifts = [...gifts];
-                newGifts.splice(giftIndex, 1);
+        await db.runTransaction(async (transaction) => {
+            const userDoc = await transaction.get(userRef);
+            const adminDoc = await transaction.get(adminStatsRef);
+            if (!userDoc.exists) throw new Error('Пользователь не найден');
+            const userData = userDoc.data();
+            const gifts = userData.gifts || [];
+            if (giftIndex >= gifts.length) throw new Error('Подарок не найден');
 
-                transaction.update(userRef, {
-                    gifts: newGifts,
-                    flx: (userData.flx || 0) + exchangePrice
-                });
+            const newGifts = [...gifts];
+            newGifts.splice(giftIndex, 1);
 
-                // Обновляем статистику комиссии
-                if (adminDoc.exists) {
-                    const currentFee = adminDoc.data().totalExchangeFee || 0;
-                    transaction.update(adminStatsRef, {
-                        totalExchangeFee: currentFee + fee
-                    });
-                } else {
-                    transaction.set(adminStatsRef, {
-                        totalExchangeFee: fee
-                    });
-                }
+            transaction.update(userRef, {
+                gifts: newGifts,
+                flx: (userData.flx || 0) + exchangePrice
             });
 
-            // Обновляем локальные данные пользователя
-            currentUserData.gifts.splice(giftIndex, 1);
-            currentUserData.flx += exchangePrice;
-            loadMyGifts();
-            alert(`Подарок обменян на ${exchangePrice} FLX (комиссия ${fee} FLX)`);
-        }
+            if (adminDoc.exists) {
+                const currentFee = adminDoc.data().totalExchangeFee || 0;
+                transaction.update(adminStatsRef, {
+                    totalExchangeFee: currentFee + fee
+                });
+            } else {
+                transaction.set(adminStatsRef, {
+                    totalExchangeFee: fee
+                });
+            }
+        });
 
+        // Обновляем локальные данные
+        currentUserData.gifts.splice(giftIndex, 1);
+        currentUserData.flx += exchangePrice;
+        loadMyGifts();
+        alert(`Подарок обменян на ${exchangePrice} FLX (комиссия ${fee} FLX)`);
+    }
         async function loadProfileGifts(userId) {
             const userDoc = await db.collection('users').doc(userId).get();
             if (!userDoc.exists) return;
